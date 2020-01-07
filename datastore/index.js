@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
-const counter = require('./counter');
+const fs = require("fs");
+const path = require("path");
+const _ = require("underscore");
+const counter = require("./counter");
 
 var items = {};
 
@@ -12,32 +12,55 @@ exports.create = (text, callback) => {
     if (err) {
       callback(err);
     } else {
-      fs.writeFile(exports.dataDir + '/' + id + '.txt', text, err => {
+      fs.writeFile(exports.dataDir + "/" + id + ".txt", text, err => {
         if (err) {
           callback(err);
         } else {
-          callback(null, {id, text});
+          callback(null, { id, text });
         }
       });
     }
   });
-  //items[id] = text;
 };
 
-exports.readAll = (callback) => {
-  var data = _.map(items, (text, id) => {
-    return { id, text };
+exports.readAll = callback => {
+  // var data = _.map(items, (text, id) => {
+  //   return { id, text };
+  // });
+  fs.readdir(exports.dataDir, (err, items) => {
+    if (err) {
+      callback(err);
+    } else {
+      let result = [];
+      if (items.length === 0) {
+        callback(null, result);
+      } else {
+        for (let i = 0; i < items.length; i++) {
+          fs.readFile(exports.dataDir + "/" + items[i], (err, data) => {
+            if (err) {
+              callback(err);
+            } else {
+              const id = items[i].slice(0, 5);
+              result.push({ id, text: id });
+              if (i === items.length - 1) {
+                callback(null, result);
+              }
+            }
+          });
+        }
+      }
+    }
   });
-  callback(null, data);
 };
 
 exports.readOne = (id, callback) => {
-  var text = items[id];
-  if (!text) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback(null, { id, text });
-  }
+  fs.readFile(exports.dataDir + '/' + id + '.txt', (err, data) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      callback(null, { id, text: data.toString() });
+    }
+  });
 };
 
 exports.update = (id, text, callback) => {
@@ -63,7 +86,7 @@ exports.delete = (id, callback) => {
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
 
-exports.dataDir = path.join(__dirname, 'data');
+exports.dataDir = path.join(__dirname, "data");
 
 exports.initialize = () => {
   if (!fs.existsSync(exports.dataDir)) {
