@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const _ = require("underscore");
 const counter = require("./counter");
+var Promise = require('bluebird');
 
 var items = {};
 
@@ -24,9 +25,6 @@ exports.create = (text, callback) => {
 };
 
 exports.readAll = callback => {
-  // var data = _.map(items, (text, id) => {
-  //   return { id, text };
-  // });
   fs.readdir(exports.dataDir, (err, items) => {
     if (err) {
       callback(err);
@@ -53,6 +51,34 @@ exports.readAll = callback => {
   });
 };
 
+exports.readAllPromise = () => {
+  return new Promise((resolve, reject) => {
+    fs.readdir(exports.dataDir, (err, items) => {
+      if (err) {
+        reject(err);
+      } else {
+        if (items.length === 0) {
+          resolve([]);
+        } else {
+          const promises = items.map(item => {
+            return new Promise((resolve, reject) => {
+              fs.readFile(exports.dataDir + "/" + item, (err, text) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  const id = item.slice(0, 5);
+                  resolve({ id, text: text.toString() });
+                }
+              });
+            });
+          });
+          resolve(Promise.all(promises));
+        }
+      }
+    });
+  });
+};
+
 exports.readOne = (id, callback) => {
   fs.readFile(exports.dataDir + "/" + id + ".txt", (err, data) => {
     if (err) {
@@ -64,13 +90,6 @@ exports.readOne = (id, callback) => {
 };
 
 exports.update = (id, text, callback) => {
-  // var item = items[id];
-  // if (!item) {
-  //   callback(new Error(`No item with id: ${id}`));
-  // } else {
-  //   items[id] = text;
-  //   callback(null, { id, text });
-  // }
   fs.readFile(exports.dataDir + "/" + id + ".txt", (err, data) => {
     if (err) {
       callback(err);
@@ -87,14 +106,18 @@ exports.update = (id, text, callback) => {
 };
 
 exports.delete = (id, callback) => {
-  var item = items[id];
-  delete items[id];
-  if (!item) {
-    // report an error if item not found
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback();
-  }
+  fs.readFile(exports.dataDir + '/' + id + '.txt', (err, data) => {
+    if (err) {
+      callback(err);
+    } else {
+      fs.unlink(exports.dataDir + '/' + id + '.txt', (err) => {
+        if (err) {
+          callback(err);
+        }
+        callback(null);
+      });
+    }
+  });
 };
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
