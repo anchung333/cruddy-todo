@@ -3,10 +3,11 @@ const path = require("path");
 const _ = require("underscore");
 const counter = require("./counter");
 var Promise = require('bluebird');
+const readFilePromise = Promise.promisify(fs.readFile);
 
 var items = {};
 
-// Public API - Fix these CRUD functions ///////////////////////////////////////
+// Public API ///////////////////////////////////////
 
 exports.create = (text, callback) => {
   counter.getNextUniqueId((err, id) => {
@@ -28,54 +29,21 @@ exports.readAll = callback => {
   fs.readdir(exports.dataDir, (err, items) => {
     if (err) {
       callback(err);
-    } else {
-      let result = [];
-      if (items.length === 0) {
-        callback(null, result);
-      } else {
-        for (let i = 0; i < items.length; i++) {
-          fs.readFile(exports.dataDir + "/" + items[i], (err, data) => {
-            if (err) {
-              callback(err);
-            } else {
-              const id = items[i].slice(0, 5);
-              result.push({ id, text: id });
-              if (i === items.length - 1) {
-                callback(null, result);
-              }
-            }
-          });
-        }
-      }
     }
-  });
-};
-
-exports.readAllPromise = () => {
-  return new Promise((resolve, reject) => {
-    fs.readdir(exports.dataDir, (err, items) => {
-      if (err) {
-        reject(err);
-      } else {
-        if (items.length === 0) {
-          resolve([]);
-        } else {
-          const promises = items.map(item => {
-            return new Promise((resolve, reject) => {
-              fs.readFile(exports.dataDir + "/" + item, (err, text) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  const id = item.slice(0, 5);
-                  resolve({ id, text: text.toString() });
-                }
-              });
-            });
-          });
-          resolve(Promise.all(promises));
-        }
-      }
+    let data = _.map(items, item => {
+      let id = path.basename(item, '.txt');
+      let filepath = path.join(exports.dataDir, item);
+      return readFilePromise(filepath).then(fileData => {
+        return {
+          id: id,
+          text: fileData.toString(),
+        };
+      });
     });
+    Promise.all(data)
+      .then((items) => {
+        callback(null, items);
+      })
   });
 };
 
@@ -90,6 +58,7 @@ exports.readOne = (id, callback) => {
 };
 
 exports.update = (id, text, callback) => {
+  console.log('index ID: ', id);
   fs.readFile(exports.dataDir + "/" + id + ".txt", (err, data) => {
     if (err) {
       callback(err);
