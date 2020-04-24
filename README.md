@@ -1,7 +1,7 @@
 # cruddy-todo
 This is a project I completed as a student at [hackreactor](http://hackreactor.com). This project was worked on with a pair.
 
-![demo](https://media.giphy.com/media/L0IA0Uyhbnb7WUA5cc/giphy.gif)
+![demo](https://media.giphy.com/media/Yr5Tgs2dRZidszh9Hk/giphy.gif)
 
 ## Goals
 - Dive deeper into Async code using standard nodejs callbacks patterns
